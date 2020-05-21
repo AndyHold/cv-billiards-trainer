@@ -27,20 +27,20 @@ def main():
     while True:
         frame = camera.get_frame()
 
-        if cv2.waitKey(50) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        if cv2.waitKey(50) & 0xFF == ord('r'):
+        if cv2.waitKey(1) & 0xFF == ord('r'):
             recording = not recording
 
         frame_copy = frame.copy()
         circles = hough_circles.get_circles(frame)
         if circles is not None:
-            for i in circles[0,:]:
+            for i in circles[0, :]:
                 # Draw the outer circle
-                cv2.circle(frame_copy,(i[0],i[1]),i[2],(0,255,0),2)
+                cv2.circle(frame_copy, (i[0], i[1]), i[2], (0, 255, 0), 2)
                 # Draw the center of the circle
-                cv2.circle(frame_copy,(i[0],i[1]),2,(0,0,255),3)
+                cv2.circle(frame_copy, (i[0], i[1]), 2, (0, 0, 255), 3)
 
         if recording:
             video_recorder.write_frame(frame_copy)
