@@ -69,7 +69,19 @@ class Utilities:
         :type frame: list the image containing the circle
         :return: the average colour of the circle
         """
-        pos, radius = circle
+        x, y, radius = circle
         circle_mask = np.zeros((frame.shape[0], frame.shape[1]), np.uint8)
-        cv2.circle(circle_mask, pos, radius, (255, 255, 255), -1)
+        cv2.circle(circle_mask, (x, y), radius, (255, 255, 255), cv2.FILLED)
         return cv2.mean(frame, mask=circle_mask)[::-1]
+
+    @staticmethod
+    def draw_ball_path(frame, circles):
+        if len(circles) > 1:
+            x1, y1, radius = circles[0]
+            circle_mask = np.zeros((frame.shape[0], frame.shape[1]), np.uint8)
+            cv2.circle(circle_mask, (x1, y1), radius, (255, 255, 255), cv2.FILLED)
+            colour = Utilities.get_average_colour(circles[0], frame)
+            for line in circles[1:]:
+                x2, y2, _ = line
+                cv2.line(frame, (x1, y1), (x2, y2), colour, thickness=2 * radius or 1, mask=circle_mask)
+                x1, y1, _ = line

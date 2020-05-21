@@ -2,6 +2,8 @@
 
 Used in computer vision projects
 
+:author: Andrew Holden
+
     Typical usage example:
 
     camera = Camera(-1)
