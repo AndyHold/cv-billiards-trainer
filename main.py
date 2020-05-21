@@ -105,7 +105,7 @@ def find_table_cushions(reference_frame, table) -> list:
 
 def find_collisions(start_ball, direction, balls_left, cushions, table_bounds, lines, recursion_counter):
     if recursion_counter > 2:
-      return
+        return
     # loop through balls and cushions finding the nearest collision (contains ball or cushion collided with, balls minus the collided ball, position of start_ball at collision
     # if no collisions:
     #   add line to exit point of table bounds
