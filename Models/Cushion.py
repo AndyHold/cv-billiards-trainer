@@ -4,16 +4,45 @@ from Common.Utilities import Utilities, ParallelLineException, LineOverlayExcept
 class Cushion:
 
     def __init__(self, line):
-        self.start = line[0]
-        self.end = line[1]
+        # This part is not essential it just helps me to imagine it in my head
+        if abs(line[0] - line[2]) > 100:
+            # lines are vertical
+            if line[1] < line[3]:
+                self.start = (line[0], line[1])
+                self.end = (line[2], line[3])
+            else:
+                self.start = (line[2], line[3])
+                self.end = (line[0], line[1])
+        else:
+            # lines are horizontal
+            if line[0] < line[2]:
+                self.start = (line[0], line[1])
+                self.end = (line[2], line[3])
+            else:
+                self.start = (line[2], line[3])
+                self.end = (line[0], line[1])
+
+        self.gradient = self.find_gradient()
+        self.normal_gradient = -1 / self.gradient
+
+    def find_gradient(self) -> float:
+        xdiff = float(self.start[0] - self.end[0])
+        ydiff = float(self.start[1] - self.end[1])
+        return ydiff / xdiff
 
     def intersect(self, position, direction, radius):
         try:
-            ### Add Buffer for radius!!!!!
+            if self.is_right(position):
+                norm_gradient = Utilities.normalize((1, self.normal_gradient * 1))
+            else:
+                norm_gradient = Utilities.normalize(( self.normal_gradient * 1, 1))
+            start = (self.start[0] + norm_gradient[0] * radius, self.start[1] + norm_gradient[1] * radius)
+            end = (self.end[0] + norm_gradient[0] * radius, self.end[1] + norm_gradient[1] * radius)
+
             intersection_point = Utilities.find_lines_intersection(
-                list(self.start) + list(self.end),
+                list(start) + list(end),
                 list(position) + [direction[0] * position[0], direction[1] * position[1]])
-            if not Utilities.is_inbetween(self.start, self.end, intersection_point):
+            if not Utilities.is_inbetween(start, end, intersection_point):
                 return False
             else:
                 vector_difference = (position[0] - intersection_point[0], position[1] - intersection_point[1])
@@ -25,15 +54,11 @@ class Cushion:
             return False
 
     def normal(self, point):
-        xdiff = float(self.start[0] - self.end[0])
-        ydiff = float(self.start[1] - self.end[1])
-        gradient = ydiff / xdiff
-        normal_gradient = -1 / gradient
 
         if self.is_right(point):
-            return Utilities.normalize((1, 1 * normal_gradient))
+            return Utilities.normalize((1, 1 * self.normal_gradient))
         else:
-            return Utilities.normalize((-1, -1 * gradient))
+            return Utilities.normalize((-1, -1 * self.gradient))
 
     def is_right(self, point):
         x, y = point
