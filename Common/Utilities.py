@@ -103,3 +103,12 @@ class Utilities:
     @staticmethod
     def vector_length(vector):
         return np.math.sqrt(np.math.pow(vector[0], 2) + np.math.pow(vector[1], 2))
+
+    @staticmethod
+    def is_inbetween(start, end, point) -> bool:
+        x, y = point
+        x1, y1 = start
+        x2, y2 = end
+
+        alpha = (x - x1) / (x2 - x1)
+        return 0 < alpha < 1.0
