@@ -1,7 +1,8 @@
 from Common.Utilities import Utilities, ParallelLineException, LineOverlayException
+from Models.Obstacle import Obstacle
 
 
-class Cushion:
+class Cushion(Obstacle):
 
     def __init__(self, line):
         # This part is not essential it just helps me to imagine it in my head
@@ -43,15 +44,15 @@ class Cushion:
                 list(start) + list(end),
                 list(position) + [direction[0] * position[0], direction[1] * position[1]])
             if not Utilities.is_inbetween(start, end, intersection_point):
-                return False
+                return -1.0
             else:
                 vector_difference = (position[0] - intersection_point[0], position[1] - intersection_point[1])
                 return Utilities.vector_length(vector_difference)
 
         except ParallelLineException:
-            return False
+            return -1.0
         except LineOverlayException:
-            return False
+            return -1.0
 
     def normal(self, point):
 
@@ -67,3 +68,6 @@ class Cushion:
 
         d = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1)
         return d > 0
+
+    def get_type(self):
+        return "Cushion"

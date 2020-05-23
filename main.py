@@ -11,6 +11,7 @@ contacted by the white ball when hit.
 import cv2
 
 from Common.Utilities import Utilities, ListTooShortException
+from Models.Ball import Ball
 from Models.Camera import Camera
 from Models.HoughCircles import HoughCircles
 from Models.VideoRecorder import VideoRecorder
@@ -60,7 +61,7 @@ def main():
 
             lines = []
             # Recursive function to find collisions
-            find_collisions(cue_ball, cue_direction, balls[0, :], cushions, table_bounds, lines, 0)
+            find_collisions(Ball(cue_ball), cue_direction, balls[0, :] + cushions, table_bounds, lines, 0)
             # draw lines
             Utilities.draw_lines()
 
@@ -104,25 +105,62 @@ def find_table_cushions(reference_frame, table) -> list:
     pass
 
 
-def find_collisions(start_ball, direction, balls_left, cushions, table_bounds, lines, recursion_counter):
+def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recursion_counter):
     if recursion_counter > 2:
         return
-    # loop through balls and cushions finding the nearest collision (contains ball or cushion collided with, balls minus the collided ball, position of start_ball at collision
-    # if no collisions:
-    #   add line to exit point of table bounds
-    #   return
-    # else:
-    #   increment counter by 1
-    #   add collision line to lines
-    #   if collided with ball:
-    #       calculate collided_ball direction
-    #       use this to calculate start_ball new direction
-    #       recursively call this function for collided ball
-    #       recursively call this function for new position of start ball
-    #   else:
-    #       calculate start_ball new direction
-    #       recursively call this function for new direction at collision point
-    pass
+
+    minimum = 1.e+6
+    collision_point = None
+    index = None
+    collision_distance = 0.0
+    for i in range(len(obstacles)):
+        t = obstacles[i].intersect(start_ball.position, direction, start_ball.radius)
+        if t > 0:
+            # Object is intersected
+            point = (start_ball.position[0] + direction[0] * t, start_ball.position[1] + direction[1] * t)
+            if (t < minimum):
+                minimum = t
+                index = i
+                collision_point = point
+                collision_distance = t
+
+    if index is not None:
+        recursion_counter += 1
+        lines.append(start_ball.position + collision_point)
+
+#       increment counter by 1
+        if obstacles[index].get_type() == "Ball":
+            collision_ball = obstacles.pop(index)
+            vector_diff = (collision_ball.position[0] - collision_point[0], collision_ball.position[1] - collision_point[1])
+            collided_ball_direction = Utilities.normalize(vector_diff)
+            collision_vector = (collision_distance * direction[0], collision_distance * direction[1])
+            start_ball_new_direction = Utilities.normalize((collision_vector[0] - vector_diff[0],
+                                                            collision_vector[1] - vector_diff[1]))
+
+            find_collisions(collision_ball,
+                            collided_ball_direction,
+                            obstacles,
+                            table_bounds,
+                            lines,
+                            recursion_counter)
+
+            find_collisions(Ball(list(collision_point) + [start_ball.radius]),
+                            start_ball_new_direction,
+                            obstacles,
+                            table_bounds,
+                            lines,
+                            recursion_counter)
+        else:
+            # Reflect along normal line
+#           calculate start_ball new direction
+#           recursively call this function for new direction at collision point
+            pass
+
+    else:
+        #   add line to exit point of table bounds using direction
+        #   return
+        pass
+
 
 if __name__ == "__main__":
     main()
