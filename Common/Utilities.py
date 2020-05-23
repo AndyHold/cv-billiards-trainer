@@ -85,3 +85,21 @@ class Utilities:
                 x2, y2, _ = line
                 cv2.line(frame, (x1, y1), (x2, y2), colour, thickness=2 * radius or 1, mask=circle_mask)
                 x1, y1, _ = line
+
+    @staticmethod
+    def draw_lines(lines):
+        pass
+
+    @staticmethod
+    def normalize(point):
+        length = Utilities.vector_length(point)
+
+        return point[0] / length, point[1] / length
+
+    @staticmethod
+    def dot(x, y):
+        return sum(x_i * y_i for x_i, y_i in zip(x, y))
+
+    @staticmethod
+    def vector_length(vector):
+        return np.math.sqrt(np.math.pow(vector[0], 2) + np.math.pow(vector[1], 2))

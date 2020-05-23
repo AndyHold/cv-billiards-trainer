@@ -61,7 +61,8 @@ def main():
             lines = []
             # Recursive function to find collisions
             find_collisions(cue_ball, cue_direction, balls[0, :], cushions, table_bounds, lines, 0)
-            # draw paths
+            # draw lines
+            Utilities.draw_lines()
 
         else:
             reference_frame = frame
