@@ -14,11 +14,12 @@ Used in computer vision projects
     frame = camera.get_frame()
     # Do something with frame.
 """
-
 import cv2
 
+from Models.FrameCapture import FrameCapture
 
-class Camera:
+
+class Camera (FrameCapture):
 
     def __init__(self, cam_num):
         self.cam = cv2.VideoCapture(cam_num)
@@ -38,3 +39,6 @@ class Camera:
 
     def release(self):
         self.cam.release()
+
+    def is_frame_valid(self):
+        return True
