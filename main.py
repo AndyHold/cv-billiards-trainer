@@ -165,7 +165,6 @@ def find_table_cushions(lines, width_halfway, height_halfway) -> list:
     for line in lines:
         for x1, y1, x2, y2 in line:
             gradient = 1000000 if (x2 - x1) == 0 else float(y2 - y1) / float(x2 - x1)  # Added catch for vertical lines
-            print(gradient)
             if abs(gradient) < 1:
                 if y1 > height_halfway:
                     bottom_lines.append(line)

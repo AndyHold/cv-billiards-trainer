@@ -51,7 +51,6 @@ class HoughCircles:
         if circles is not None:
             circles = np.uint16(np.around(circles))
             balls = []
-            print(circles)
             for circle in circles[0]:
                 balls.append(Ball(circle))
             return balls
