@@ -35,3 +35,12 @@ class FrameCapture:
         :return: True if the current frame is valid.
         """
         pass
+
+    @abstractmethod
+    def is_opened(self) -> bool:
+        """
+        Checks if the frame capture is open for use.
+        
+        :return: True if the frame capture is open.
+        """
+        pass

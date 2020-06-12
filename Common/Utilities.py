@@ -22,7 +22,6 @@ class Utilities:
 
         num_lines = len(lines)
         for line in lines:
-            num_lines += 1
             for x1, y1, x2, y2 in line:
                 sums["x1"] += x1
                 sums["x2"] += x2
@@ -33,6 +32,64 @@ class Utilities:
             averages[key] = sums[key] / num_lines
 
         return [averages["x1"], averages["y1"], averages["x2"], averages["y2"]]
+
+    @staticmethod
+    def add_horizontal_lines(lines: list) -> list:
+        """
+        Adds a group of lines together
+
+        :type lines: list list of lines to add.
+        :raises EmptyLinesException when the list is empty or None
+        """
+        max_x = -1
+        max_y = -1
+        min_x = -1
+        min_y = -1
+
+        if type(lines) is not list or len(lines) == 0:
+            raise EmptyListException()
+
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                if x1 > max_x:
+                    max_x, min_y = x1, y1
+                if x1 < min_x:
+                    min_x, min_y = x1, y1
+                if x2 > max_x:
+                    max_x, max_y = x2, y2
+                if x2 < min_x:
+                    min_x, min_y = x2, y2
+
+        return [min_x, min_y, max_x, max_y]
+
+    @staticmethod
+    def add_vertical_lines(lines: list) -> list:
+        """
+        Adds a group of lines together
+
+        :type lines: list list of lines to add.
+        :raises EmptyLinesException when the list is empty or None
+        """
+        max_x = -1
+        max_y = -1
+        min_x = -1
+        min_y = -1
+
+        if type(lines) is not list or len(lines) == 0:
+            raise EmptyListException()
+
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                if y1 > max_y:
+                    max_x, min_y = x1, y1
+                if y1 < min_y:
+                    min_x, min_y = x1, y1
+                if y2 > max_y:
+                    max_x, max_y = x2, y2
+                if y2 < min_y:
+                    min_x, min_y = x2, y2
+
+        return [min_x, min_y, max_x, max_y]
 
     @staticmethod
     def find_lines_intersection(line1: list, line2: list) -> list:

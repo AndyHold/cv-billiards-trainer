@@ -18,7 +18,7 @@ Used in computer vision projects
 """
 import cv2
 
-from Models.FrameCapture import FrameCapture
+from Models.FrameCapture.FrameCapture import FrameCapture
 
 
 class VideoReader(FrameCapture):

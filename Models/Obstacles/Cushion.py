@@ -1,21 +1,20 @@
 from Common.Utilities import Utilities, ParallelLineException, LineOverlayException
-from Models.Obstacle import Obstacle
+from Models.Obstacles.Obstacle import Obstacle
 
 
 class Cushion(Obstacle):
 
-    def __init__(self, line):
+    def __init__(self, line, line_orientation):
+        self.orientation = line_orientation
         # This part is not essential it just helps me to imagine it in my head
-        if abs(line[0] - line[2]) > 100:
-            # lines are vertical
+        if self.orientation in ["left", "right"]:  # Line is vertical
             if line[1] < line[3]:
                 self.start = (line[0], line[1])
                 self.end = (line[2], line[3])
             else:
                 self.start = (line[2], line[3])
                 self.end = (line[0], line[1])
-        else:
-            # lines are horizontal
+        else:  # Line is horizontal
             if line[0] < line[2]:
                 self.start = (line[0], line[1])
                 self.end = (line[2], line[3])
@@ -24,19 +23,27 @@ class Cushion(Obstacle):
                 self.end = (line[0], line[1])
 
         self.gradient = self.find_gradient()
-        self.normal_gradient = -1 / self.gradient
+        try:
+            self.normal_gradient = -1 / self.gradient
+        except ZeroDivisionError:
+            # Line must be horizontal
+            self.normal_gradient = 0.0000001  # Close enough
 
     def find_gradient(self) -> float:
         xdiff = float(self.start[0] - self.end[0])
         ydiff = float(self.start[1] - self.end[1])
-        return ydiff / xdiff
+        try:
+            return ydiff / xdiff
+        except ZeroDivisionError:
+            # Line must be vertical
+            return 1000000.0  # Close enough
 
     def intersect(self, position, direction, radius):
         try:
             if self.is_right(position):
                 norm_gradient = Utilities.normalize((1, self.normal_gradient * 1))
             else:
-                norm_gradient = Utilities.normalize(( self.normal_gradient * 1, 1))
+                norm_gradient = Utilities.normalize((self.normal_gradient * 1, 1))
             start = (self.start[0] + norm_gradient[0] * radius, self.start[1] + norm_gradient[1] * radius)
             end = (self.end[0] + norm_gradient[0] * radius, self.end[1] + norm_gradient[1] * radius)
 

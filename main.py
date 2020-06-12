@@ -7,28 +7,56 @@ and the direction of the cue. From this information the trajectory of the white
 ball will be calculated and displayed along with any balls that are potentially
 contacted by the white ball when hit.
 """
-
+import sys
 import cv2
 
-from Common.Utilities import Utilities, ListTooShortException
-from Models.Ball import Ball
-from Models.Camera import Camera
-from Models.HoughCircles import HoughCircles
+from Common.Utilities import Utilities
+from Models.Obstacles.Ball import Ball
+from Models.Filters.ColourSpaceConverter import ColourSpaceConverter
+from Models.Filters.MiddleSectionCropper import MiddleSectionCropper
+from Models.Filters.Morphology import Morphology
+from Models.FrameCapture.Camera import Camera
+from Models.Obstacles.Cushion import Cushion
+from Models.Transformations.HoughCircles import HoughCircles
+from Models.FrameCapture.VideoReader import VideoReader
+from Models.Transformations.HoughLines import HoughLines
 from Models.VideoRecorder import VideoRecorder
 from Models.Window import Window
 
 
 def main():
-    camera = Camera(-1)
+    args = sys.argv[1:]
+
+    tag = None if len(args) == 0 else args[0]
+    try:
+        if tag is not None:
+            arg = args[1]
+        if tag == '-f':
+            frame_capture = VideoReader(arg)
+        elif tag == '-v':
+            frame_capture = Camera(int(arg))
+        else:
+            frame_capture = Camera(-1)
+    except IndexError:
+        if tag == '-f':
+            missing = 'filename'
+        else:
+            missing = 'camera number'
+        print(f"Missing argument '{missing}'")
+        sys.exit(1)
+
+    if not frame_capture.is_opened():
+        print("Failed to open frame capture device or file.")
+        sys.exit(1)
+
     window = Window("Show me the camera")
     video_recorder = VideoRecorder("output.avi", (640, 480))
+    hough_circles = HoughCircles(20, 25, 20, 30)
     recording = False
-    hough_circles = HoughCircles(100, 30, 20, 60)
-    # hough_circles = HoughCircles()
 
-    reference_frame = camera.get_frame()
-    while True:
-        frame = camera.get_frame()
+    reference_frame = frame_capture.get_frame()
+    while frame_capture.is_frame_valid():
+        frame = frame_capture.get_frame()
         display_frame = frame.copy()
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -37,50 +65,85 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('r'):
             recording = not recording
 
-        if not are_balls_moving(frame, reference_frame):
-            table_bounds = find_table(reference_frame)
-            cushions = find_table_cushions(reference_frame, table_bounds)
+        if not are_balls_moving(frame, reference_frame, hough_circles): #, display_frame, display_reference_frame):
+            cushions = find_table(reference_frame)
 
-            # Identify the locations of all balls.
-            balls = hough_circles.get_circles(frame)
+            # TODO: delete this, it's for debugging
+            for cushion in cushions:
+                cv2.line(display_frame,
+                         (int(round(cushion.start[0])), int(round(cushion.start[1]))),
+                         (int(round(cushion.end[0])), int(round(cushion.end[1]))), (255, 255, 100), thickness=2)
 
-            cue_direction, cue_ball, balls = find_cue_direction(frame, reference_frame, balls[0, :])
+            # # Identify the locations of all balls.
+            # balls = hough_circles.get_circles(frame)
+            #
+            # cue_direction, cue_ball, balls = find_cue_direction(frame, reference_frame, balls[0, :])
 
-            # # Draw each ball
-            # if balls is not None:
-            #     for i in balls[0, :]:
-            #         # Draw the outer circle
-            #         cv2.circle(display_frame, (i[0], i[1]), i[2], (0, 255, 0), cv2.FILLED)
-            #         # Draw the center of the circle
-            #         cv2.circle(display_frame, (i[0], i[1]), 2, (0, 0, 255), 3)
-            #     # Draw lines between each ball
-            #     try:
-            #         Utilities.draw_ball_path(display_frame, balls[0, :])
-            #     except ListTooShortException:
-            #         print("Not enough circles")
-
-            lines = []
-            # Recursive function to find collisions
-            find_collisions(Ball(cue_ball), cue_direction, balls[0, :] + cushions, table_bounds, lines, 0)
-            # draw lines
-            Utilities.draw_lines()
+            # lines = []
+            # # Recursive function to find collisions
+            # find_collisions(Ball(cue_ball), cue_direction, balls[0, :] + cushions, table_bounds, lines, 0)
+            # # draw lines
+            # Utilities.draw_lines()
 
         else:
             reference_frame = frame
 
-        if recording:
-            video_recorder.write_frame(display_frame)
+        # if recording:
+        #     video_recorder.write_frame(display_frame)
 
         window.update_window(display_frame)
 
     video_recorder.release()
-    camera.release()
+    frame_capture.release()
     window.destroy()
     hough_circles.destroy()
 
 
-def are_balls_moving(frame, reference_frame) -> bool:
-    pass
+def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display_frame, display_reference_frame) -> bool:
+
+    reference_balls = hough_circles.get_circles(reference_frame)
+    frame_balls = hough_circles.get_circles(frame)
+
+    # # Draw each ball
+    # if reference_balls is not None:
+    #     for ball in reference_balls[0, :]:
+    #         # Draw the outer circle
+    #         cv2.circle(display_frame, (ball[0], ball[1]), ball[2], (0, 255, 0), 1)  # cv2.FILLED)
+    #         # Draw the center of the circle
+    #         cv2.circle(display_frame, (ball[0], ball[1]), 2, (0, 0, 255), 3)
+    #
+    #         # Draw the outer circle
+    #         cv2.circle(display_reference_frame, (ball[0], ball[1]), ball[2], (0, 255, 0), 1)  # cv2.FILLED)
+    #         # Draw the center of the circle
+    #         cv2.circle(display_reference_frame, (ball[0], ball[1]), 2, (0, 0, 255), 3)
+    #
+    # if frame_balls is not None:
+    #     for ball in frame_balls[0, :]:
+    #         # Draw the outer circle
+    #         cv2.circle(display_frame, (ball[0], ball[1]), ball[2], (255, 100, 100), 1)  # cv2.FILLED)
+    #         # Draw the center of the circle
+    #         cv2.circle(display_frame, (ball[0], ball[1]), 2, (100, 100, 255), 3)
+    #     # Draw lines between each ball
+    #     # try:
+    #     #     Utilities.draw_ball_path(display_frame, reference_balls[0, :])
+    #     # except ListTooShortException:
+    #     #     print("Not enough circles")
+
+    if reference_balls is not None and frame_balls is not None:
+        for i in range(len(reference_balls[0])):
+            ball_found = False
+            for j in range(len(frame_balls[0])):
+                # print(reference_balls[i], frame_balls[j])
+                if abs(reference_balls[0][i][0] - frame_balls[0][j][0]) < 5 and abs(
+                        reference_balls[0][i][1] - frame_balls[0][j][1] < 5):
+                    ball_found = True
+                    break
+
+            if not ball_found:
+                return False
+    else:
+        return True
+    return True
 
 
 def find_cue_direction(frame, reference_frame, balls) -> ((float, float), (int, int, int), list):
@@ -97,12 +160,55 @@ def find_cue_direction(frame, reference_frame, balls) -> ((float, float), (int, 
     pass
 
 
-def find_table(reference_frame) -> list:
-    pass
+def find_table(frame) -> list:
+    height, width, _ = frame.shape
+    frame_max_hue = MiddleSectionCropper.max_hue_index(frame)
+    hsv_filtered = ColourSpaceConverter.get_hsv_filtered(
+        frame,
+        frame_max_hue,
+        positive_threshold=7,
+        negative_threshold=7)
+
+    open_closed = Morphology.open_close(hsv_filtered)
+    hough_lines = HoughLines(150, 150)
+    lines = hough_lines.get_lines(open_closed)
+
+    lines = lines if lines is not None else []
+
+    return find_table_cushions(lines, width / 2, height / 2)
 
 
-def find_table_cushions(reference_frame, table) -> list:
-    pass
+def find_table_cushions(lines, width_halfway, height_halfway) -> list:
+    left_lines = []
+    right_lines = []
+    top_lines = []
+    bottom_lines = []
+    for line in lines:
+        for x1, y1, x2, y2 in line:
+            gradient = 1000000 if (x2 - x1) == 0 else float(y2 - y1) / float(x2 - x1)  # Added catch for vertical lines
+            print(gradient)
+            if abs(gradient) < 1:
+                if y1 > height_halfway:
+                    bottom_lines.append(line)
+                else:
+                    top_lines.append(line)
+            elif x1 < width_halfway:
+                left_lines.append(line)
+            else:
+                right_lines.append(line)
+
+    # return bottom_lines
+    cushions = []
+    if len(top_lines) > 0:
+        cushions.append(Cushion(Utilities.add_horizontal_lines(top_lines), "top"))
+    if len(bottom_lines) > 0:
+        cushions.append(Cushion(Utilities.add_horizontal_lines(bottom_lines), "bottom"))
+    if len(left_lines) > 0:
+        cushions.append(Cushion(Utilities.calculate_line_average(left_lines), "left"))
+    if len(right_lines) > 0:
+        cushions.append(Cushion(Utilities.calculate_line_average(right_lines), "right"))
+
+    return cushions
 
 
 def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recursion_counter):
@@ -128,10 +234,11 @@ def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recur
         recursion_counter += 1
         lines.append(start_ball.position + collision_point)
 
-#       increment counter by 1
+        #       increment counter by 1
         if obstacles[index].get_type() == "Ball":
             collision_ball = obstacles.pop(index)
-            vector_diff = (collision_ball.position[0] - collision_point[0], collision_ball.position[1] - collision_point[1])
+            vector_diff = (
+                collision_ball.position[0] - collision_point[0], collision_ball.position[1] - collision_point[1])
             collided_ball_direction = Utilities.normalize(vector_diff)
             collision_vector = (collision_distance * direction[0], collision_distance * direction[1])
             start_ball_new_direction = Utilities.normalize((collision_vector[0] - vector_diff[0],
@@ -152,8 +259,8 @@ def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recur
                             recursion_counter)
         else:
             # Reflect along normal line
-#           calculate start_ball new direction
-#           recursively call this function for new direction at collision point
+            #           calculate start_ball new direction
+            #           recursively call this function for new direction at collision point
             pass
 
     else:

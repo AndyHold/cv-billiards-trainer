@@ -1,7 +1,5 @@
-import math
-
 from Common.Utilities import Utilities
-from Models.Obstacle import Obstacle
+from Models.Obstacles.Obstacle import Obstacle
 
 
 class Ball(Obstacle):

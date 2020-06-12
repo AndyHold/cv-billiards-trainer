@@ -21,29 +21,32 @@ Used in computer vision projects
 """
 import cv2
 
-from Models.FrameCapture import FrameCapture
+from Models.FrameCapture.FrameCapture import FrameCapture
 
 
 class Camera (FrameCapture):
 
     def __init__(self, cam_num):
-        self.cam = cv2.VideoCapture(cam_num)
+        self.camera = cv2.VideoCapture(cam_num)
 
     def update_brightness(self, brightness):
-        self.cam.set(cv2.CAP_PROP_BRIGHTNESS, brightness / 100)
+        self.camera.set(cv2.CAP_PROP_BRIGHTNESS, brightness / 100)
 
     def update_contrast(self, contrast):
-        self.cam.set(cv2.CAP_PROP_CONTRAST, contrast / 100)
+        self.camera.set(cv2.CAP_PROP_CONTRAST, contrast / 100)
 
     def update_saturation(self, saturation):
-        self.cam.set(cv2.CAP_PROP_SATURATION, saturation / 100)
+        self.camera.set(cv2.CAP_PROP_SATURATION, saturation / 100)
 
     def get_frame(self):
-        _, frame = self.cam.read()
+        _, frame = self.camera.read()
         return frame
 
     def release(self):
-        self.cam.release()
+        self.camera.release()
 
     def is_frame_valid(self):
         return True
+
+    def is_opened(self):
+        return self.camera.isOpened()
