@@ -10,9 +10,14 @@ Used in computer vision projects
     camera.update_brightness(50)
     camera.update_contrast(50)
     camera.update_saturation(50)
-    
-    frame = camera.get_frame()
-    # Do something with frame.
+
+    while True:
+        frame = camera.get_frame()
+
+        if not is_frame_valid():
+            break
+            
+        # Do something with frame.
 """
 import cv2
 
