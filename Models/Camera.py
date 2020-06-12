@@ -16,7 +16,7 @@ Used in computer vision projects
 
         if not is_frame_valid():
             break
-            
+
         # Do something with frame.
 """
 import cv2
