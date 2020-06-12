@@ -65,19 +65,23 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('r'):
             recording = not recording
 
-        if not are_balls_moving(frame, reference_frame, hough_circles): #, display_frame, display_reference_frame):
+        if not are_balls_moving(frame, reference_frame, hough_circles):
             cushions = find_table(reference_frame)
 
-            # TODO: delete this, it's for debugging
+            # TODO: delete this, for debugging
             for cushion in cushions:
                 cv2.line(display_frame,
                          (int(round(cushion.start[0])), int(round(cushion.start[1]))),
                          (int(round(cushion.end[0])), int(round(cushion.end[1]))), (255, 255, 100), thickness=2)
 
             # # Identify the locations of all balls.
-            # balls = hough_circles.get_circles(frame)
-            #
-            # cue_direction, cue_ball, balls = find_cue_direction(frame, reference_frame, balls[0, :])
+            balls = find_balls(frame)
+
+            # TODO: delete this, for debugging
+            for ball in balls:
+                cv2.circle(display_frame, ball.position, ball.radius, (100, 255, 100), 2)
+
+            # cue_direction, cue_ball, balls = find_cue_direction(frame, reference_frame, balls)
 
             # lines = []
             # # Recursive function to find collisions
@@ -103,31 +107,6 @@ def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display
 
     reference_balls = hough_circles.get_circles(reference_frame)
     frame_balls = hough_circles.get_circles(frame)
-
-    # # Draw each ball
-    # if reference_balls is not None:
-    #     for ball in reference_balls[0, :]:
-    #         # Draw the outer circle
-    #         cv2.circle(display_frame, (ball[0], ball[1]), ball[2], (0, 255, 0), 1)  # cv2.FILLED)
-    #         # Draw the center of the circle
-    #         cv2.circle(display_frame, (ball[0], ball[1]), 2, (0, 0, 255), 3)
-    #
-    #         # Draw the outer circle
-    #         cv2.circle(display_reference_frame, (ball[0], ball[1]), ball[2], (0, 255, 0), 1)  # cv2.FILLED)
-    #         # Draw the center of the circle
-    #         cv2.circle(display_reference_frame, (ball[0], ball[1]), 2, (0, 0, 255), 3)
-    #
-    # if frame_balls is not None:
-    #     for ball in frame_balls[0, :]:
-    #         # Draw the outer circle
-    #         cv2.circle(display_frame, (ball[0], ball[1]), ball[2], (255, 100, 100), 1)  # cv2.FILLED)
-    #         # Draw the center of the circle
-    #         cv2.circle(display_frame, (ball[0], ball[1]), 2, (100, 100, 255), 3)
-    #     # Draw lines between each ball
-    #     # try:
-    #     #     Utilities.draw_ball_path(display_frame, reference_balls[0, :])
-    #     # except ListTooShortException:
-    #     #     print("Not enough circles")
 
     if reference_balls is not None and frame_balls is not None:
         for i in range(len(reference_balls[0])):
@@ -209,6 +188,12 @@ def find_table_cushions(lines, width_halfway, height_halfway) -> list:
         cushions.append(Cushion(Utilities.calculate_line_average(right_lines), "right"))
 
     return cushions
+
+
+def find_balls(frame):
+    hough_circles = HoughCircles(50, 6, 27, 32)
+
+    return hough_circles.get_balls(frame)
 
 
 def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recursion_counter):
