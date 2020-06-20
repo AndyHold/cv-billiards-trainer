@@ -9,5 +9,5 @@ class HoughLines:
         self.max_gap = max_gap
 
     def get_lines(self, frame):
-        edges = cv2.Canny(frame, 10, 100)
-        return cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=self.min_length, maxLineGap=self.max_gap)
+        edges = cv2.Canny(frame, 50, 100)
+        return cv2.HoughLinesP(edges, 1, np.pi / 180, 75, minLineLength=self.min_length, maxLineGap=self.max_gap), edges

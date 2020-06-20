@@ -17,11 +17,13 @@ class Utilities:
         sums = {"x1": 0.0, "x2": 0.0, "y1": 0.0, "y2": 0.0}
         averages = {"x1": 0.0, "x2": 0.0, "y1": 0.0, "y2": 0.0}
 
-        if type(lines) is not list or len(lines) == 0:
+        if len(lines) == 0:
             raise EmptyListException()
 
-        num_lines = len(lines)
+        num_lines = float(len(lines))
         for line in lines:
+            if len(line) == 4:
+                line = [line]
             for x1, y1, x2, y2 in line:
                 sums["x1"] += x1
                 sums["x2"] += x2
@@ -32,6 +34,54 @@ class Utilities:
             averages[key] = sums[key] / num_lines
 
         return [averages["x1"], averages["y1"], averages["x2"], averages["y2"]]
+
+    @staticmethod
+    def shortest_distance_two_lines(line1, line2):
+        """
+        Finds the shortest distance between two line segments
+
+        :param line1: the first line [x1, y1, x2, y2]
+        :param line2: the second line [x1, y1, x2, y2]
+        :return: the shortest distance as a float.
+        """
+        x1, y1, x2, y2 = line1
+        x3, y3, x4, y4 = line2
+        dist1 = Utilities.line_point_distance(line2, (x1, y1))
+        dist2 = Utilities.line_point_distance(line2, (x2, y2))
+        dist3 = Utilities.line_point_distance(line1, (x3, y3))
+        dist4 = Utilities.line_point_distance(line1, (x4, y4))
+
+        return min(dist1, dist2, dist3, dist4)
+
+    @staticmethod
+    def line_point_distance(line, point):
+        """
+        Finds the closest distance between a line segment and a point
+
+        :param line: the line segment represented by [x1, y1, x2, y2]
+        :param point: the point represented by (x, y)
+        :return: the distance as a float
+        """
+        x1, y1, x2, y2 = line
+        x3, y3 = point
+
+        x_delta = x2 - x1
+        y_delta = y2 - y1
+        if x_delta == 0 and y_delta == 0:
+            return None
+        u = ((x3 - x1) * x_delta + (y3 - y1) * y_delta) / (x_delta * x_delta + y_delta * y_delta)
+
+        if u < 0:
+            closest_x = x1
+            closest_y = y1
+        elif u > 1:
+            closest_x = x2
+            closest_y = y2
+        else:
+            closest_x = x1 + u * x_delta
+            closest_y = y1 + u * y_delta
+
+        return np.math.sqrt((closest_x - x3) ** 2 + (closest_y - y3) ** 2)
 
     @staticmethod
     def add_horizontal_lines(lines: list) -> list:

@@ -50,13 +50,14 @@ def main():
         sys.exit(1)
 
     window = Window("Show me the camera")
+    diff_window = Window("difference")
     video_recorder = VideoRecorder("output.avi", (640, 480))
     hough_circles = HoughCircles(20, 25, 20, 30)
     recording = False
 
     reference_frame = frame_capture.get_frame()
-    while frame_capture.is_frame_valid():
-        frame = frame_capture.get_frame()
+    frame = frame_capture.get_frame()
+    while frame is not None:
         display_frame = frame.copy()
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -69,19 +70,24 @@ def main():
             cushions = find_table(reference_frame)
 
             # TODO: delete this, for debugging
-            for cushion in cushions:
-                cv2.line(display_frame,
-                         (int(round(cushion.start[0])), int(round(cushion.start[1]))),
-                         (int(round(cushion.end[0])), int(round(cushion.end[1]))), (255, 255, 100), thickness=2)
+            if cushions is not None:
+                for cushion in cushions:
+                    cv2.line(display_frame,
+                             (int(round(cushion.start[0])), int(round(cushion.start[1]))),
+                             (int(round(cushion.end[0])), int(round(cushion.end[1]))), (255, 255, 100), thickness=2)
 
             # # Identify the locations of all balls.
             balls = find_balls(frame)
 
             # TODO: delete this, for debugging
-            for ball in balls:
-                cv2.circle(display_frame, ball.position, ball.radius, (100, 255, 100), 2)
+            if balls is not None:
+                for ball in balls:
+                    cv2.circle(display_frame, ball.position, ball.radius, (100, 255, 100), 2)
 
-            # cue_direction, cue_ball, balls = find_cue_direction(frame, reference_frame, balls)
+            # cue, cue_ball, balls = find_cue_direction(frame, reference_frame, balls)
+
+            avg_line = find_cue_direction(frame, reference_frame, balls, display_frame)
+
 
             # lines = []
             # # Recursive function to find collisions
@@ -97,14 +103,26 @@ def main():
 
         window.update_window(display_frame)
 
+        frame = frame_capture.get_frame()
+
     video_recorder.release()
     frame_capture.release()
     window.destroy()
     hough_circles.destroy()
 
 
-def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display_frame, display_reference_frame) -> bool:
+def filter_outlyers(lines):
+    data = []
+    for i in range(len(lines)):
+        for j in range(len(lines)):
+            if i is not j:
+                if Utilities.shortest_distance_two_lines(lines[i], lines[j]) < 30:
+                    data.append(lines[i])
+                    break
 
+    return data
+
+def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display_frame, display_reference_frame) -> bool:
     reference_balls = hough_circles.get_circles(reference_frame)
     frame_balls = hough_circles.get_circles(frame)
 
@@ -112,7 +130,6 @@ def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display
         for i in range(len(reference_balls[0])):
             ball_found = False
             for j in range(len(frame_balls[0])):
-                # print(reference_balls[i], frame_balls[j])
                 if abs(reference_balls[0][i][0] - frame_balls[0][j][0]) < 5 and abs(
                         reference_balls[0][i][1] - frame_balls[0][j][1] < 5):
                     ball_found = True
@@ -125,14 +142,51 @@ def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display
     return True
 
 
-def find_cue_direction(frame, reference_frame, balls) -> ((float, float), (int, int, int), list):
-    # Perform image diff
-    # enhance edges
-    # look for edges
-    # look for lines from edges
-    # look for two almost parallel lines going through the nearest ball
-    # Save this ball as the cue ball and remove it from balls
-    # Calculate center line of these two lines
+def find_cue_direction(frame, reference_frame, balls, display_frame) -> (((float, float), (float, float)), Ball, list):
+    diff = cv2.subtract(frame, reference_frame)
+    gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+    blur = cv2.medianBlur(gray, 3)
+    _, binary = cv2.threshold(blur, 75, 255, cv2.THRESH_BINARY)
+    morphed = Morphology.close_morph(binary)
+
+    hough_lines = HoughLines(110, 20)
+    line_set, edges = hough_lines.get_lines(morphed)
+
+    lines = []
+    if line_set is not None:
+        if len(line_set) > 2:
+            # Split the lines
+            for line in line_set:
+                for x1, y1, x2, y2 in line:
+                    i = 0
+                    found = False
+                    while not found and i < len(lines):
+                        if Utilities.shortest_distance_two_lines(lines[i][0], (x1, y1, x2, y2)) < 10:
+                            lines[i].append((x1, y1, x2, y2))
+                            found = True
+                        i += 1
+                    if not found:
+                        lines.append([(x1, y1, x2, y2)])
+
+            avg_lines = []
+
+            for i in range(len(lines)):
+                avg_lines.append(Utilities.calculate_line_average(lines[i]))
+
+            # Filter outlyers
+            avg_lines = filter_outlyers(avg_lines)
+
+            if len(avg_lines) == 2:
+                avg_line = Utilities.calculate_line_average(avg_lines)
+
+                cv2.line(display_frame,
+                         (int(round(avg_line[0])), int(round(avg_line[1]))),
+                         (int(round(avg_line[2])), int(round(avg_line[3]))),
+                         (255, 100, 100),
+                         thickness=2)
+
+                return avg_line
+
     # Find end closest to ball
     # normalize this for cue direction
     # return (cue_direction, cue_ball, balls)
@@ -150,7 +204,7 @@ def find_table(frame) -> list:
 
     open_closed = Morphology.open_close(hsv_filtered)
     hough_lines = HoughLines(150, 150)
-    lines = hough_lines.get_lines(open_closed)
+    lines, _ = hough_lines.get_lines(open_closed)
 
     lines = lines if lines is not None else []
 
