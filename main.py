@@ -84,10 +84,38 @@ def main():
                 for ball in balls:
                     cv2.circle(display_frame, ball.position, ball.radius, (100, 255, 100), 2)
 
-            # cue, cue_ball, balls = find_cue_direction(frame, reference_frame, balls)
+            avg_line = find_cue(frame, reference_frame, display_frame)
 
-            avg_line = find_cue_direction(frame, reference_frame, balls, display_frame)
+            if avg_line is not None:
+                # look in both directions, find nearest collision. get direction
+                # from cue line and closest ball is starting ball.
+                collision_distance = 1.e+6  # further away than any ball
+                ball_index = -1
+                collision_direction = None
+                direction = Utilities.normalize((avg_line[0] - avg_line[2], avg_line[1] - avg_line[3]))
+                for i in range(len(balls)):
+                    t = balls[i].intersect((avg_line[0], avg_line[1]), direction, 0)
+                    if t > 0:  # there is a collision
+                        if t < collision_distance:
+                            collision_distance = t
+                            ball_index = i
+                            collision_direction = direction
 
+                direction = Utilities.normalize((avg_line[2] - avg_line[0], avg_line[3] - avg_line[1]))
+                for i in range(len(balls)):
+                    t = balls[i].intersect((avg_line[2], avg_line[3]), direction, 0)
+                    if t > 0:  # there is a collision
+                        if t < collision_distance:
+                            collision_distance = t
+                            ball_index = i
+                            collision_direction = direction
+
+                if ball_index is not -1:
+                    cue_ball = balls.pop(ball_index)
+                    lines = []
+                    find_collisions(cue_ball, collision_direction, balls + cushions, lines, 0)
+
+                    Utilities.draw_lines(lines)
 
             # lines = []
             # # Recursive function to find collisions
@@ -122,7 +150,9 @@ def filter_outlyers(lines):
 
     return data
 
-def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display_frame, display_reference_frame) -> bool:
+
+def are_balls_moving(frame, reference_frame,
+                     hough_circles) -> bool:  # , display_frame, display_reference_frame) -> bool:
     reference_balls = hough_circles.get_circles(reference_frame)
     frame_balls = hough_circles.get_circles(frame)
 
@@ -142,7 +172,7 @@ def are_balls_moving(frame, reference_frame, hough_circles) -> bool: # , display
     return True
 
 
-def find_cue_direction(frame, reference_frame, balls, display_frame) -> (((float, float), (float, float)), Ball, list):
+def find_cue(frame, reference_frame, display_frame) -> (float, float, float, float):
     diff = cv2.subtract(frame, reference_frame)
     gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
     blur = cv2.medianBlur(gray, 3)
@@ -186,11 +216,6 @@ def find_cue_direction(frame, reference_frame, balls, display_frame) -> (((float
                          thickness=2)
 
                 return avg_line
-
-    # Find end closest to ball
-    # normalize this for cue direction
-    # return (cue_direction, cue_ball, balls)
-    pass
 
 
 def find_table(frame) -> list:
@@ -249,7 +274,7 @@ def find_balls(frame):
     return hough_circles.get_balls(frame)
 
 
-def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recursion_counter):
+def find_collisions(start_ball, direction, obstacles, lines, recursion_counter):
     if recursion_counter > 2:
         return
 
@@ -262,7 +287,7 @@ def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recur
         if t > 0:
             # Object is intersected
             point = (start_ball.position[0] + direction[0] * t, start_ball.position[1] + direction[1] * t)
-            if (t < minimum):
+            if t < minimum:
                 minimum = t
                 index = i
                 collision_point = point
@@ -285,14 +310,12 @@ def find_collisions(start_ball, direction, obstacles, table_bounds, lines, recur
             find_collisions(collision_ball,
                             collided_ball_direction,
                             obstacles,
-                            table_bounds,
                             lines,
                             recursion_counter)
 
             find_collisions(Ball(list(collision_point) + [start_ball.radius]),
                             start_ball_new_direction,
                             obstacles,
-                            table_bounds,
                             lines,
                             recursion_counter)
         else:
