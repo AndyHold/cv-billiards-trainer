@@ -194,8 +194,21 @@ class Utilities:
                 x1, y1, _ = line
 
     @staticmethod
-    def draw_lines(lines):
-        pass
+    def draw_lines(lines, frame):
+        for x1, y1, x2, y2 in lines:
+            cv2.line(
+                frame,
+                (int(round(x1)), int(round(y1))),
+                (int(round(x2)), int(round(y2))),
+                (100, 100, 100),
+                thickness=4
+            )
+
+    @staticmethod
+    def find_reflection(normal, direction):
+        incident_ray = [-direction[0], -direction[1]]
+        i_dot_n = Utilities.dot(incident_ray, normal)
+        return incident_ray[0] - 2 * i_dot_n * normal[0], incident_ray[1] - 2 * i_dot_n * normal[1]
 
     @staticmethod
     def normalize(point):
@@ -205,7 +218,7 @@ class Utilities:
 
     @staticmethod
     def dot(x, y):
-        return sum(x_i * y_i for x_i, y_i in zip(x, y))
+        return sum(float(x_i) * float(y_i) for x_i, y_i in zip(x, y))
 
     @staticmethod
     def vector_length(vector):

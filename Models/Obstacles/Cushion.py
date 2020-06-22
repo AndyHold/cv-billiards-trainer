@@ -46,10 +46,9 @@ class Cushion(Obstacle):
                 norm_gradient = Utilities.normalize((self.normal_gradient * 1, 1))
             start = (self.start[0] + norm_gradient[0] * radius, self.start[1] + norm_gradient[1] * radius)
             end = (self.end[0] + norm_gradient[0] * radius, self.end[1] + norm_gradient[1] * radius)
-
             intersection_point = Utilities.find_lines_intersection(
                 list(start) + list(end),
-                list(position) + [direction[0] * position[0], direction[1] * position[1]])
+                list(position) + [direction[0] + position[0], direction[1] + position[1]])
             if not Utilities.is_inbetween(start, end, intersection_point):
                 return -1.0
             else:

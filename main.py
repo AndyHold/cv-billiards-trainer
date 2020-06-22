@@ -50,7 +50,6 @@ def main():
         sys.exit(1)
 
     window = Window("Show me the camera")
-    diff_window = Window("difference")
     video_recorder = VideoRecorder("output.avi", (640, 480))
     hough_circles = HoughCircles(20, 25, 20, 30)
     recording = False
@@ -113,15 +112,8 @@ def main():
                 if ball_index is not -1:
                     cue_ball = balls.pop(ball_index)
                     lines = []
-                    find_collisions(cue_ball, collision_direction, balls + cushions, lines, 0)
-
-                    Utilities.draw_lines(lines)
-
-            # lines = []
-            # # Recursive function to find collisions
-            # find_collisions(Ball(cue_ball), cue_direction, balls[0, :] + cushions, table_bounds, lines, 0)
-            # # draw lines
-            # Utilities.draw_lines()
+                    find_collisions(cue_ball, collision_direction, balls + cushions, lines, 0, display_frame)
+                    Utilities.draw_lines(lines, display_frame)
 
         else:
             reference_frame = frame
@@ -203,7 +195,7 @@ def find_cue(frame, reference_frame, display_frame) -> (float, float, float, flo
             for i in range(len(lines)):
                 avg_lines.append(Utilities.calculate_line_average(lines[i]))
 
-            # Filter outlyers
+            # Filter Outliers
             avg_lines = filter_outlyers(avg_lines)
 
             if len(avg_lines) == 2:
@@ -274,30 +266,27 @@ def find_balls(frame):
     return hough_circles.get_balls(frame)
 
 
-def find_collisions(start_ball, direction, obstacles, lines, recursion_counter):
-    if recursion_counter > 2:
+def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, display_frame):
+    if recursion_counter > 3:
         return
 
-    minimum = 1.e+6
     collision_point = None
     index = None
-    collision_distance = 0.0
+    collision_distance = 1.e+6
     for i in range(len(obstacles)):
         t = obstacles[i].intersect(start_ball.position, direction, start_ball.radius)
         if t > 0:
             # Object is intersected
             point = (start_ball.position[0] + direction[0] * t, start_ball.position[1] + direction[1] * t)
-            if t < minimum:
-                minimum = t
+            if t < collision_distance:
                 index = i
                 collision_point = point
                 collision_distance = t
 
+    recursion_counter += 1
     if index is not None:
-        recursion_counter += 1
         lines.append(start_ball.position + collision_point)
 
-        #       increment counter by 1
         if obstacles[index].get_type() == "Ball":
             collision_ball = obstacles.pop(index)
             vector_diff = (
@@ -306,23 +295,32 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter):
             collision_vector = (collision_distance * direction[0], collision_distance * direction[1])
             start_ball_new_direction = Utilities.normalize((collision_vector[0] - vector_diff[0],
                                                             collision_vector[1] - vector_diff[1]))
+            cv2.line(display_frame,
+                     collision_point,
+                     (collision_point[0] + collided_ball_direction[0], collision_point[1] + collided_ball_direction[1]),
+                     (255, 0, 0),
+                     thickness=8)
 
             find_collisions(collision_ball,
                             collided_ball_direction,
                             obstacles,
                             lines,
-                            recursion_counter)
+                            recursion_counter, display_frame)
 
             find_collisions(Ball(list(collision_point) + [start_ball.radius]),
                             start_ball_new_direction,
                             obstacles,
                             lines,
-                            recursion_counter)
+                            recursion_counter, display_frame)
         else:
-            # Reflect along normal line
-            #           calculate start_ball new direction
-            #           recursively call this function for new direction at collision point
-            pass
+            collision_cushion = obstacles[index]
+            new_direction = Utilities.normalize(Utilities.find_reflection(collision_cushion.normal(collision_point), direction))
+
+            find_collisions(Ball(list(collision_point) + [start_ball.radius]),
+                            new_direction,
+                            obstacles,
+                            lines,
+                            recursion_counter, display_frame)
 
     else:
         #   add line to exit point of table bounds using direction
