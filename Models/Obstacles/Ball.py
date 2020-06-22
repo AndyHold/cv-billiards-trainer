@@ -19,13 +19,13 @@ class Ball(Obstacle):
         c = np.power(Utilities.vector_length(om), 2) - np.power((radius + self.radius), 2)
         q = np.power(b, 2) - 4 * a * c
         if q <= 0:
-            return -1
+            return -1, None
 
         g = 1 / (2 * a)
         q = g * np.sqrt(q)
         b = -b * g
 
-        return Utilities.vector_length((direction[0] * (b - q), direction[1] * (b - q)))
+        return Utilities.vector_length((direction[0] * (b - q), direction[1] * (b - q))), None
 
     def normal(self, point):
         x = point[0] - self.position[0]

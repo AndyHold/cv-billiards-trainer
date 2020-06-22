@@ -252,9 +252,8 @@ class Utilities:
 
     @staticmethod
     def find_reflection(normal, direction):
-        incident_ray = [-direction[0], -direction[1]]
-        i_dot_n = Utilities.dot(incident_ray, normal)
-        return incident_ray[0] - 2 * i_dot_n * normal[0], incident_ray[1] - 2 * i_dot_n * normal[1]
+        i_dot_n = Utilities.dot(direction, normal)
+        return direction[0] - 2 * i_dot_n * normal[0], direction[1] - 2 * i_dot_n * normal[1]
 
     @staticmethod
     def normalize(point):
@@ -275,6 +274,10 @@ class Utilities:
         x, y = point
         x1, y1 = start
         x2, y2 = end
-
-        alpha = (x - x1) / (x2 - x1)
-        return 0 < alpha < 1.0
+        beta = y2 - y1
+        delta = x2 - x1
+        if abs(delta) < 1:
+            return x1 < x < x2 or x1 > x > x2
+        if abs(beta) < 1:
+            return y1 < y < y2 or y1 > y > y2
+        return (x1 < x < x2 or x1 > x > x2) and (y1 < y < y2 or y1 > y > y2)

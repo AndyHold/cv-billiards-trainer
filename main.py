@@ -69,13 +69,6 @@ def main():
         if not are_balls_moving(frame, reference_frame, hough_circles):
             cushions = find_table(reference_frame)
 
-            # # For debugging
-            if cushions is not None:
-                for cushion in cushions:
-                    cv2.line(display_frame,
-                             (int(round(cushion.start[0])), int(round(cushion.start[1]))),
-                             (int(round(cushion.end[0])), int(round(cushion.end[1]))), (255, 255, 100), thickness=2)
-
             balls = find_balls(frame)
 
             avg_cue_line = find_cue(frame, reference_frame, display_frame)
@@ -88,7 +81,7 @@ def main():
                 collision_direction = None
                 direction = Utilities.normalize((avg_cue_line[0] - avg_cue_line[2], avg_cue_line[1] - avg_cue_line[3]))
                 for i in range(len(balls)):
-                    t = balls[i].intersect((avg_cue_line[0], avg_cue_line[1]), direction, 0.0)
+                    t, _ = balls[i].intersect((avg_cue_line[0], avg_cue_line[1]), direction, 0.0)
                     if t > 0:  # there is a collision
                         if t < collision_distance:
                             collision_distance = t
@@ -98,7 +91,7 @@ def main():
                 direction = Utilities.normalize((avg_cue_line[2] - avg_cue_line[0], avg_cue_line[3] - avg_cue_line[1]))
 
                 for i in range(len(balls)):
-                    t = balls[i].intersect((avg_cue_line[2], avg_cue_line[3]), direction, 0.0)
+                    t, _ = balls[i].intersect((avg_cue_line[2], avg_cue_line[3]), direction, 0.0)
                     if t > 0:  # there is a collision
                         if t < collision_distance:
                             collision_distance = t
@@ -107,12 +100,23 @@ def main():
 
                 if ball_index is not -1:
                     cue_ball = balls.pop(ball_index)
+                    # Uncomment to display the cue ball
                     # cv2.circle(display_frame,
                     #            (int(round(cue_ball.position[0])),
                     #             int(round(cue_ball.position[1]))),
                     #            int(round(cue_ball.radius)),
                     #            (100, 255, 100),
                     #            2)
+
+                    # Uncomment to show imaginary lines next to cushions
+                    if cushions is not None:
+                        for cushion in cushions:
+                            imaginary_line = cushion.get_imaginary_line(cue_ball.radius)
+                            cv2.line(display_frame,
+                                     (int(round(imaginary_line[0])), int(round(imaginary_line[1]))),
+                                     (int(round(imaginary_line[2])), int(round(imaginary_line[3]))),
+                                     (255, 255, 100),
+                                     thickness=2)
                     lines = []
                     find_collisions(cue_ball, collision_direction, balls + cushions, lines, 0, display_frame, True)
                     Utilities.draw_lines(lines, display_frame)
@@ -230,7 +234,7 @@ def find_table(frame) -> list:
 
     lines = lines if lines is not None else []
 
-    return find_table_cushions(lines, width / 2, height / 2)
+    return find_table_cushions(lines, width / 2.0, height / 2.0)
 
 
 def find_table_cushions(lines, width_halfway, height_halfway) -> list:
@@ -278,8 +282,9 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
     collision_point = None
     index = None
     collision_distance = 1.e+6
+    intersection_point = None
     for i in range(len(obstacles)):
-        t = obstacles[i].intersect(start_ball.position, direction, start_ball.radius)
+        t, intersection_pt = obstacles[i].intersect(start_ball.position, direction, start_ball.radius)
         if t > 0:
             # Object is intersected
             point = (
@@ -290,6 +295,7 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
                 index = i
                 collision_point = point
                 collision_distance = t
+                intersection_point = intersection_pt
 
     recursion_counter += 1
     if index is not None:
@@ -309,10 +315,12 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
                 start_ball.radius
             ])
             imaginary_ball_new_direction = Utilities.normalize((direction[0] - collided_ball_direction[0],
-                                                            direction[1] - collided_ball_direction[1]))
+                                                                direction[1] - collided_ball_direction[1]))
 
             cv2.circle(display_frame,
-                       (int(round(collision_point[0])), int(round(collision_point[1]))), int(round(start_ball.radius)),
+                       (int(round(collision_point[0])),
+                        int(round(collision_point[1]))),
+                       int(round(start_ball.radius)),
                        (100, 255, 100), 2)
 
             find_collisions(collision_ball,
@@ -329,8 +337,15 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
                                 recursion_counter, display_frame, False)
         else:
             collision_cushion = obstacles[index]
+            if intersection_point is not None:
+                cv2.circle(display_frame,
+                           (int(round(intersection_point[0])), int(round(intersection_point[1]))),
+                           28,
+                           (0, 0, 0),
+                           thickness=2)
+            normal = collision_cushion.normal(collision_point)
             new_direction = Utilities.normalize(
-                Utilities.find_reflection(collision_cushion.normal(collision_point), direction)
+                Utilities.find_reflection(normal, direction)
             )
 
             find_collisions(Ball(list(collision_point) + [start_ball.radius]),
