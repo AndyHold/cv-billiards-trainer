@@ -50,7 +50,6 @@ def main():
         sys.exit(1)
 
     window = Window("Show me the way")
-    win = Window("Difference")
     # video_recorder = VideoRecorder("output.avi", (640, 480))
     hough_circles = HoughCircles(50, 6, 27, 32)
     recording = False
