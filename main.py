@@ -81,7 +81,7 @@ def main():
             # TODO: delete this, for debugging
             if balls is not None:
                 for ball in balls:
-                    cv2.circle(display_frame, ball.position, ball.radius, (100, 255, 100), 2)
+                    cv2.circle(display_frame, (int(round(ball.position[0])), int(round(ball.position[1]))), int(round(ball.radius)), (100, 255, 100), 2)
 
             avg_line = find_cue(frame, reference_frame, display_frame)
 
@@ -295,9 +295,13 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
             collision_vector = (collision_distance * direction[0], collision_distance * direction[1])
             start_ball_new_direction = Utilities.normalize((collision_vector[0] - vector_diff[0],
                                                             collision_vector[1] - vector_diff[1]))
+            normal = collision_ball.normal(collision_point)
+            cv2.circle(display_frame,
+                       (int(round(collision_point[0])), int(round(collision_point[1]))), int(round(start_ball.radius)), (100, 255, 100), 2)
             cv2.line(display_frame,
-                     collision_point,
-                     (collision_point[0] + collided_ball_direction[0], collision_point[1] + collided_ball_direction[1]),
+                     (int(round(collision_ball.position[0])), int(round(collision_ball.position[1]))),
+                     (int(round(collision_ball.position[0] + 40 * normal[0])),
+                      int(round(collision_ball.position[1] + 40 * normal[1]))),
                      (255, 0, 0),
                      thickness=8)
 
@@ -323,9 +327,10 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
                             recursion_counter, display_frame)
 
     else:
-        #   add line to exit point of table bounds using direction
-        #   return
-        pass
+        height, width, _ = display_frame.shape
+        start = start_ball.position
+        end = Utilities.find_bounds_exit_point(height, width, start, direction)
+        lines.append(list(start) + list(end))
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ class Ball(Obstacle):
     def is_inside(self, point, radius):
         vector_difference = (self.position[0] - point[0], self.position[1] - point[1])
         vector_difference_length = Utilities.vector_length(vector_difference)
-        return vector_difference_length < self.radius + radius
+        return vector_difference_length < 2 * self.radius + 2 * radius
 
     def get_type(self) -> str:
         return "Ball"

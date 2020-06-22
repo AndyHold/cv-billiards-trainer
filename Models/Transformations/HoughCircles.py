@@ -52,7 +52,7 @@ class HoughCircles:
             circles = np.uint16(np.around(circles))
             balls = []
             for circle in circles[0]:
-                balls.append(Ball(circle))
+                balls.append(Ball((float(circle[0]), float(circle[1]), float(circle[2]))))
             return balls
         else:
             return None

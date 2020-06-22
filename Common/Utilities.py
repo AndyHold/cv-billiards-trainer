@@ -7,6 +7,52 @@ from Common.Exceptions import *
 class Utilities:
 
     @staticmethod
+    def find_bounds_exit_point(height, width, start, direction):
+        top = [0, 0, width, 0]
+        bottom = [0, height, width, height]
+        left = [0, 0, 0, height]
+        right = [width, 0, width, height]
+        try:
+            left_point = Utilities.find_lines_intersection(left, list(start) + [start[0] + direction[0], start[1] + direction[1]])
+            if Utilities.is_inbetween(left[:2], left[2:], left_point):
+                return left_point
+        except LineOverlayException:
+            pass
+        try:
+            right_point = Utilities.find_lines_intersection(right, list(start) + [start[0] + direction[0],
+                                                                              start[1] + direction[1]])
+            if Utilities.is_inbetween(right[:2], right[2:], right_point):
+                return right_point
+        except LineOverlayException:
+            pass
+        try:
+            top_point = Utilities.find_lines_intersection(top, list(start) + [start[0] + direction[0], start[1] + direction[1]])
+            if Utilities.is_inbetween(top[:2], top[2:], top_point):
+                return top_point
+        except LineOverlayException:
+            pass
+        try:
+            bottom_point = Utilities.find_lines_intersection(bottom, list(start) + [start[0] + direction[0],
+                                                                                start[1] + direction[1]])
+            if Utilities.is_inbetween(bottom[:2], bottom[2:], bottom_point):
+                return bottom_point
+        except LineOverlayException:
+            pass
+
+        if direction[0] < 0:
+            if direction[1] < 0:
+                return 0, 0
+            else:
+                return 0, height
+        else:
+            if direction[1] < 0:
+                return width, 0
+            else:
+                return width, height
+
+
+
+    @staticmethod
     def calculate_line_average(lines: list) -> list:
         """
         Calculates the average line of a list of lines.
