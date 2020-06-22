@@ -266,6 +266,31 @@ class Utilities:
         return sum(float(x_i) * float(y_i) for x_i, y_i in zip(x, y))
 
     @staticmethod
+    def find_perpendicular_vector(vector, origin_line, collided_ball_position):
+        x, y = vector
+        x1, x2 = 1, -1
+        perp1 = Utilities.normalize((x1, (-x * x1) / y))
+        perp2 = Utilities.normalize((x2, (-x * x2) / y))
+
+        perp_point1 = (collided_ball_position[0] + perp1[0], collided_ball_position[1] + perp1[1])
+        perp_point2 = (collided_ball_position[0] + perp2[0], collided_ball_position[1] + perp2[1])
+        if Utilities.is_right(collided_ball_position, origin_line):
+            if Utilities.is_right(perp_point1, origin_line):
+                return perp_point2
+            return perp_point1
+        if Utilities.is_right(perp_point1, origin_line):
+            return perp_point1
+        return perp_point2
+
+    @staticmethod
+    def is_right(point, line):
+        x, y = point
+        x1, y1, x2, y2 = line
+
+        d = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1)
+        return d > 0
+
+    @staticmethod
     def vector_length(vector):
         return np.math.sqrt(np.math.pow(vector[0], 2) + np.math.pow(vector[1], 2))
 

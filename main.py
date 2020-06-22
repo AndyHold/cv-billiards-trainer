@@ -313,8 +313,11 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
                 start_ball.position[1] + collision_vector[1],
                 start_ball.radius
             ])
-            imaginary_ball_new_direction = Utilities.normalize((direction[0] - collided_ball_direction[0],
-                                                                direction[1] - collided_ball_direction[1]))
+            imaginary_ball_new_direction = Utilities.find_perpendicular_vector(
+                collided_ball_direction,
+                list(start_ball.position) + list(collision_point),
+                collision_ball.position
+            )
 
             cv2.circle(display_frame,
                        (int(round(collision_point[0])),
