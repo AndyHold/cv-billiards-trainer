@@ -359,9 +359,8 @@ def find_collisions(start_ball, direction, obstacles, lines, recursion_counter, 
                             is_cue_ball)
 
     else:
-        height, width, _ = display_frame.shape
         start = start_ball.position
-        end = Utilities.find_bounds_exit_point(height, width, start, direction)
+        end = (start[0] + 20 * direction[0], start[1] + 20 * direction[1])
         lines.append(list(start) + list(end))
 
 
