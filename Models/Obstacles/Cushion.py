@@ -27,7 +27,7 @@ class Cushion(Obstacle):
             self.normal_gradient = -1 / self.gradient
         except ZeroDivisionError:
             # Line must be horizontal
-            self.normal_gradient = 0.0000001  # Close enough
+            self.normal_gradient = -1000000.0  # Close enough
 
     def find_gradient(self) -> float:
         xdiff = float(self.start[0] - self.end[0])
@@ -39,13 +39,19 @@ class Cushion(Obstacle):
             return 1000000.0  # Close enough
 
     def intersect(self, position, direction, radius):
+        if self.orientation is "left":
+            start = (self.start[0] + radius, self.start[1])
+            end = (self.end[0] + radius, self.end[1])
+        elif self.orientation is "right":
+            start = (self.start[0] - radius, self.start[1])
+            end = (self.end[0] - radius, self.end[1])
+        elif self.orientation is "top":
+            start = (self.start[0], self.start[1] - radius)
+            end = (self.end[0], self.end[1] - radius)
+        else:
+            start = (self.start[0], self.start[1] + radius)
+            end = (self.end[0], self.end[1] + radius)
         try:
-            if self.is_right(position):
-                norm_gradient = Utilities.normalize((1, self.normal_gradient * 1))
-            else:
-                norm_gradient = Utilities.normalize((self.normal_gradient * 1, 1))
-            start = (self.start[0] + norm_gradient[0] * radius, self.start[1] + norm_gradient[1] * radius)
-            end = (self.end[0] + norm_gradient[0] * radius, self.end[1] + norm_gradient[1] * radius)
             intersection_point = Utilities.find_lines_intersection(
                 list(start) + list(end),
                 list(position) + [direction[0] + position[0], direction[1] + position[1]])
@@ -61,11 +67,20 @@ class Cushion(Obstacle):
             return -1.0
 
     def normal(self, point):
-
-        if self.is_right(point):
+        if self.orientation is "left":
             return Utilities.normalize((1, 1 * self.normal_gradient))
-        else:
-            return Utilities.normalize((-1, -1 * self.gradient))
+        if self.orientation is "right":
+            return Utilities.normalize((-1, -1 * self.normal_gradient))
+        if self.orientation is "top":
+            if self.normal_gradient > 0:
+                return Utilities.normalize((1, 1 * self.normal_gradient))
+            else:
+                return Utilities.normalize((-1, -1 * self.normal_gradient))
+        if self.orientation is "bottom":
+            if self.normal_gradient > 0:
+                return Utilities.normalize((-1, -1 * self.normal_gradient))
+            else:
+                return Utilities.normalize((1, 1 * self.normal_gradient))
 
     def is_right(self, point):
         x, y = point

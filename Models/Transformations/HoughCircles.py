@@ -3,6 +3,7 @@ import numpy as np
 
 from Models.Filters.ColourSpaceConverter import ColourSpaceConverter
 from Models.Filters.MiddleSectionCropper import MiddleSectionCropper
+from Models.Filters.Morphology import Morphology
 from Models.Obstacles.Ball import Ball
 
 
@@ -16,30 +17,13 @@ class HoughCircles:
             self.min_radius = min_radius
             self.max_radius = max_radius
 
-    def get_circles(self, frame):
-        blur = cv2.GaussianBlur(frame, (9, 9), 0)
-        # Convert the image to grayscale for processing
-        gray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
-
-        circles = cv2.HoughCircles(gray,
-                                   cv2.HOUGH_GRADIENT,
-                                   1,
-                                   20,
-                                   param1=self.canny_threshold,
-                                   param2=self.accumulator_threshold,
-                                   minRadius=self.min_radius,
-                                   maxRadius=self.max_radius)
-
-        if circles is not None:
-            return np.uint16(np.around(circles))
-        else:
-            return None
-
     def get_balls(self, frame):
         mhi = MiddleSectionCropper.max_hue_index(frame)
         hsv_fil = ColourSpaceConverter.get_hsv_filtered(frame, mhi, 30, 30)
 
-        circles = cv2.HoughCircles(hsv_fil,
+        open_close = Morphology.open_close(hsv_fil)
+
+        circles = cv2.HoughCircles(open_close,
                                    cv2.HOUGH_GRADIENT,
                                    1,
                                    20,
